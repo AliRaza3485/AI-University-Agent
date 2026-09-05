@@ -1,0 +1,122 @@
+# ============================================================
+# AI University Agent — .gitignore
+# ============================================================
+
+# ---------- Environment & secrets ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ---------- Virtual environments ----------
+.venv/
+venv/
+env/
+ENV/
+
+# ---------- Testing / coverage ----------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ---------- Type checkers / linters ----------
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+
+# ---------- Jupyter ----------
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# ---------- IDE / editor ----------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Project data (large / generated / sensitive) ----------
+# Raw source documents can be large binary files (PDFs, DOCX) and often
+# contain institution-specific content that shouldn't live in git history.
+# Keep the folder structure tracked via .gitkeep, but ignore actual files.
+data/raw_documents/*
+!data/raw_documents/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
+
+data/embeddings/*
+!data/embeddings/.gitkeep
+
+data/test_dataset/*
+!data/test_dataset/.gitkeep
+
+# ---------- Vector DB / embeddings artifacts ----------
+*.faiss
+*.index
+chroma_db/
+*.parquet
+
+# ---------- ML experiment tracking / model artifacts ----------
+mlruns/
+mlartifacts/
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.ckpt
+
+# ---------- DVC (if used later) ----------
+.dvc/cache
+.dvc/tmp
+.dvc/config.local
+
+# ---------- Logs ----------
+*.log
+logs/
+
+# ---------- Docker ----------
+*.env.docker
+
+# ---------- Misc ----------
+*.bak
+*.tmp
+.cache/

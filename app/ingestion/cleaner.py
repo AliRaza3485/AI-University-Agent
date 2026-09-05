@@ -3,17 +3,24 @@ Text cleaning utilities for the ingestion pipeline.
 
 IMPORTANT: The rules in this module are NOT generic/speculative. They are
 derived directly from inspecting real extracted text from the Fall 2026
-Prospectus PDF (see notebooks/01_ingestion_exploration.ipynb). Findings
-from that inspection:
+Prospectus PDF (see notebooks/01_ingestion_exploration.ipynb and
+notebooks/02_cleaner_verification.ipynb).
 
-    - Repeated header: roughly half of sampled pages start with a
-      two-line running header: "UNIVERSITY OF EDUCATION, LAHORE"
-      followed by a line starting with "FALL ...". Pages WITHOUT this
-      header (faculty listings, bullet-point pages, calendar pages)
-      simply don't have it - so removal must be conditional on the
-      pattern actually being present, never a blind positional strip.
-    - No repeated footer pattern was found - footer content varies
-      page to page, so no footer-stripping rule is implemented here.
+Findings (v2, after deeper diagnostic investigation):
+
+    - The phrase "UNIVERSITY OF EDUCATION, LAHORE" followed by a line
+      starting with "FALL" is a repeating header/footer block emitted by
+      the PDF's page furniture (running header/footer). Critically, this
+      block does NOT always appear at a fixed position (first 2 lines).
+      PyMuPDF extracts text blocks in the order they're stored in the
+      PDF's content stream, not strictly top-to-bottom - so this block
+      can appear at the very start, in the middle of body text, or
+      duplicated back-to-back, sometimes followed by a standalone page
+      number line (e.g. "...UNIVERSITY OF EDUCATION, LAHORE\nFALL\n107").
+    - Because of this, removal MUST be pattern-based (regex, matched
+      anywhere in the text) rather than positional (first-N-lines only).
+      An earlier version of this module used positional stripping and
+      left the phrase present on 302/382 pages - this version fixes that.
     - No broken line breaks were observed.
     - No weird/control characters were observed.
 
@@ -26,30 +33,26 @@ from __future__ import annotations
 
 import re
 
-# Line 1: institution name, exact match (case-insensitive).
-# Line 2: starts with "FALL" - the exact suffix (year/session wording)
-# varies slightly across pages, so this is intentionally a prefix match
-# rather than a full-line match.
-_HEADER_LINE_1 = re.compile(r"^UNIVERSITY OF EDUCATION,?\s*LAHORE\s*$", re.IGNORECASE)
-_HEADER_LINE_2_PREFIX = re.compile(r"^FALL\b", re.IGNORECASE)
+# Matches one or more consecutive repeats of the running header/footer
+# block ("UNIVERSITY OF EDUCATION, LAHORE" + a line starting with "FALL"),
+# optionally followed by a standalone page-number line that belongs to
+# the same footer (e.g. "...FALL\n107"). Matched anywhere in the text,
+# not just at a fixed position, because extraction order is not reliably
+# top-to-bottom.
+_HEADER_FOOTER_BLOCK = re.compile(
+    r"(?:UNIVERSITY OF EDUCATION,?\s*LAHORE[ \t]*\n[ \t]*FALL[^\n]*\n?)+"
+    r"(?:[ \t]*\d{1,4}[ \t]*\n?)?",
+    re.IGNORECASE,
+)
 
 
-def strip_running_header(text: str) -> str:
+def strip_header_footer_blocks(text: str) -> str:
     """
-    Remove the repeated 2-line running header from the top of a page's
-    text, if present. Pages that don't have it are returned unchanged -
-    this function never removes content that doesn't match the pattern.
+    Remove all occurrences of the recurring header/footer block, wherever
+    they appear in the text (start, middle, or end - possibly repeated
+    back-to-back). Text without the pattern is returned unchanged.
     """
-    lines = text.split("\n")
-
-    if (
-        len(lines) >= 2
-        and _HEADER_LINE_1.match(lines[0].strip())
-        and _HEADER_LINE_2_PREFIX.match(lines[1].strip())
-    ):
-        lines = lines[2:]
-
-    return "\n".join(lines)
+    return _HEADER_FOOTER_BLOCK.sub("", text)
 
 
 def normalize_whitespace(text: str) -> str:
@@ -77,7 +80,7 @@ def normalize_whitespace(text: str) -> str:
 
 def clean_page_text(text: str) -> str:
     """Apply all cleaning steps, in order, to a single page's raw text."""
-    text = strip_running_header(text)
+    text = strip_header_footer_blocks(text)
     text = normalize_whitespace(text)
     return text
 

@@ -1,0 +1,46 @@
+[project]
+name = "ai-university-agent"
+version = "0.1.0"
+description = "RAG-based AI agent for University of Education, Lahore — answers questions from official prospectus documents."
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Ali Raza", email = "muhammadtoqeerzia18@gmail.com" },
+]
+
+dependencies = [
+    "fastapi>=0.141,<1",
+    "uvicorn>=0.52,<1",
+    "pydantic>=2.13,<3",
+    "pydantic-settings>=2.15,<3",
+    "python-dotenv>=1.2,<2",
+    "pymupdf>=1.28,<2",
+    "sqlalchemy>=2.0,<3",
+    "psycopg2-binary>=2.9,<3",
+    "python-docx>=1.2,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.1,<10",
+    "pytest-asyncio>=1.4,<2",
+    "ruff>=0.11,<1",
+]
+
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]

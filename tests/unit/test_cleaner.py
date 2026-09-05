@@ -4,35 +4,70 @@ from app.ingestion.cleaner import (
     clean_page_text,
     clean_pages,
     normalize_whitespace,
-    strip_running_header,
+    strip_header_footer_blocks,
 )
 from app.ingestion.parser import extract_pdf_pages
 
 PDF_PATH = Path("data/raw_documents/Prospectus - FALL 2026 (29-07-2026).pdf")
 
 
-# --- strip_running_header -----------------------------------------------
+# --- strip_header_footer_blocks --------------------------------------------
 
 
-def test_strip_running_header_removes_header_when_present():
-    text = "UNIVERSITY OF EDUCATION, LAHORE\nFALL 2026 PROSPECTUS\nActual page content here."
-    result = strip_running_header(text)
+def test_strip_header_footer_removes_block_at_start():
+    text = "UNIVERSITY OF EDUCATION, LAHORE\nFALL 2026\nActual page content here."
+    result = strip_header_footer_blocks(text)
 
     assert "UNIVERSITY OF EDUCATION" not in result
-    assert result.strip() == "Actual page content here."
+    assert "Actual page content here." in result
 
 
-def test_strip_running_header_leaves_text_unchanged_when_absent():
+def test_strip_header_footer_removes_block_in_middle_of_text():
+    # This is the real-world pattern found in the actual PDF: the block
+    # appears embedded inside body text, not just at the top.
+    text = (
+        "Some paragraph text ends here. More\n"
+        "UNIVERSITY OF EDUCATION, LAHORE\n"
+        "FALL\n"
+        "107\n"
+        "Next paragraph continues here."
+    )
+    result = strip_header_footer_blocks(text)
+
+    assert "UNIVERSITY OF EDUCATION" not in result
+    assert "Some paragraph text ends here. More" in result
+    assert "Next paragraph continues here." in result
+    assert "107" not in result
+
+
+def test_strip_header_footer_removes_back_to_back_duplicate_block():
+    # Matches the observed pattern where the block repeats twice in a row
+    # before a trailing page number.
+    text = (
+        "...competence, commitment, and integrity. More\n"
+        "UNIVERSITY OF EDUCATION, LAHORE\n"
+        "FALL\n"
+        "UNIVERSITY OF EDUCATION, LAHORE\n"
+        "FALL\n"
+        "107\n"
+        "Next section starts here."
+    )
+    result = strip_header_footer_blocks(text)
+
+    assert result.count("UNIVERSITY OF EDUCATION") == 0
+    assert "Next section starts here." in result
+
+
+def test_strip_header_footer_leaves_text_unchanged_when_absent():
     text = "Mr. Muhammad Tehseen\nLecturer\nDepartment of Computer Science"
-    result = strip_running_header(text)
+    result = strip_header_footer_blocks(text)
 
     assert result == text
 
 
-def test_strip_running_header_requires_both_lines_to_match():
-    # Line 1 matches but line 2 does not -> should NOT strip.
-    text = "UNIVERSITY OF EDUCATION, LAHORE\nSome unrelated line\nContent."
-    result = strip_running_header(text)
+def test_strip_header_footer_does_not_touch_unrelated_numbers():
+    text = "The program requires 107 credit hours to graduate."
+    result = strip_header_footer_blocks(text)
 
     assert result == text
 
@@ -79,24 +114,17 @@ def test_clean_pages_preserves_raw_text_and_adds_cleaned_fields():
         assert result["cleaned_char_count"] == len(result["cleaned_text"])
 
 
-def test_clean_pages_removes_header_from_pages_that_had_it():
+def test_clean_pages_removes_header_footer_from_entire_document():
     pages = extract_pdf_pages(PDF_PATH)
     cleaned = clean_pages(pages)
 
-    # Page 13 (index 12) was confirmed in the exploration notebook to
-    # start with the running header.
-    header_page = cleaned[12]
-    assert "UNIVERSITY OF EDUCATION, LAHORE" not in header_page["cleaned_text"]
+    still_has_phrase = [
+        p["page_number"]
+        for p in cleaned
+        if "UNIVERSITY OF EDUCATION, LAHORE" in p["cleaned_text"]
+    ]
 
-
-def test_clean_pages_does_not_alter_pages_without_header():
-    pages = extract_pdf_pages(PDF_PATH)
-    cleaned = clean_pages(pages)
-
-    # Page 53 (index 52) was confirmed NOT to have the header.
-    no_header_page = cleaned[52]
-    # cleaned_char_count should be close to original char_count -
-    # only whitespace normalization should have changed it, not content
-    # removal.
-    assert no_header_page["cleaned_char_count"] <= no_header_page["char_count"]
-    assert no_header_page["cleaned_char_count"] > no_header_page["char_count"] * 0.9
+    assert still_has_phrase == [], (
+        f"Expected 0 pages with leftover header/footer text, "
+        f"found {len(still_has_phrase)}: {still_has_phrase[:20]}"
+    )
