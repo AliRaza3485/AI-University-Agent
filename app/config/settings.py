@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     postgres_user: str = "postgres"
     postgres_password: str = "changeme"
 
+    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_dimension: int = 384
+
+    qdrant_host: str = "localhost"
+    qdrant_port: int = 6333
+    qdrant_collection: str = "university_docs"
+
     @property
     def database_url(self) -> str:
         return (
