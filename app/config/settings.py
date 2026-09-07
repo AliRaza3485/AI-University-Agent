@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     qdrant_port: int = 6333
     qdrant_collection: str = "university_docs"
 
+    qdrant_url: str | None = None
+    qdrant_api_key: str | None = None
+
     @property
     def database_url(self) -> str:
         return (

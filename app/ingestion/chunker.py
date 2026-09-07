@@ -152,7 +152,7 @@ def chunk_pages(
                     tail = tail[boundary + 1 :]
                 if tail.strip():
                     current_text = tail + "\n\n" + piece_text
-                    current_pages = current_pages | {page_num}
+                    current_pages = {max(current_pages), page_num}
                 else:
                     current_text = piece_text
                     current_pages = {page_num}
