@@ -5,7 +5,7 @@ description = "RAG-based AI agent for University of Education, Lahore — answer
 requires-python = ">=3.11"
 license = "MIT"
 authors = [
-    { name = "Ali Raza", email = "muhammadtoqeerzia18@gmail.com" },
+    { name = "Ali Raza", email = "ar3080331@gmail.com" },
 ]
 
 dependencies = [
@@ -30,7 +30,7 @@ dev = [
 
 [build-system]
 requires = ["setuptools>=75", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["app*"]
